@@ -137,15 +137,18 @@ backend:
 
   - task: "Bear Movement and Trapping Logic"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Bears move randomly to adjacent empty tiles each turn. When surrounded by non-empty tiles, they transform into tombstones that can merge into grass. Progressive spawning increases every 10 moves"
+        - working: false
+          agent: "testing"
+          comment: "Bear spawning works correctly after move 10, but the bear trapping logic has issues. When attempting to surround a bear with items, it doesn't consistently transform into a tombstone. This could be due to the random movement of bears making it difficult to trap them completely, or there might be a bug in the trapping detection logic."
 
   - task: "Progressive Difficulty System"
     implemented: true
