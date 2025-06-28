@@ -162,6 +162,41 @@ def process_merges(grid: List[List[int]]) -> tuple[List[List[int]], int, List[Di
     
     return grid, score_gained, all_merged_positions
 
+def is_bear_trapped(grid: List[List[int]], bear_x: int, bear_y: int) -> bool:
+    """Check if a bear is trapped using DFS to find escape routes"""
+    visited = set()
+    
+    def can_escape_dfs(x: int, y: int) -> bool:
+        # Out of bounds - consider this an escape route to boundary
+        if x < 0 or x >= GRID_SIZE or y < 0 or y >= GRID_SIZE:
+            return True
+        
+        # Already visited this position
+        if (x, y) in visited:
+            return False
+        
+        # Non-empty tile (blocked path)
+        if grid[x][y] != -99 and grid[x][y] != -1:  # Not empty and not bear
+            return False
+        
+        # Mark as visited
+        visited.add((x, y))
+        
+        # If we reach the boundary, bear can escape
+        if x == 0 or x == GRID_SIZE - 1 or y == 0 or y == GRID_SIZE - 1:
+            return True
+        
+        # Check all 4 directions
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        for dx, dy in directions:
+            if can_escape_dfs(x + dx, y + dy):
+                return True
+        
+        return False
+    
+    # Check if bear can escape from its current position
+    return not can_escape_dfs(bear_x, bear_y)
+
 def move_bears(grid: List[List[int]]) -> List[List[int]]:
     """Move bears randomly and trap them if surrounded"""
     bear_positions = []
@@ -172,26 +207,28 @@ def move_bears(grid: List[List[int]]) -> List[List[int]]:
             if grid[x][y] == -1:  # Bear
                 bear_positions.append((x, y))
     
-    # Move each bear
+    # Process each bear
     for bear_x, bear_y in bear_positions:
-        # Check if bear is trapped (surrounded by non-empty tiles)
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        empty_neighbors = []
-        
-        for dx, dy in directions:
-            nx, ny = bear_x + dx, bear_y + dy
-            if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE:
-                if grid[nx][ny] == -99:  # Empty tile
-                    empty_neighbors.append((nx, ny))
-        
-        if not empty_neighbors:
+        # Check if bear is trapped using DFS algorithm
+        if is_bear_trapped(grid, bear_x, bear_y):
             # Bear is trapped, turn into tombstone
             grid[bear_x][bear_y] = -2
         else:
-            # Move bear to random empty neighbor
-            new_x, new_y = random.choice(empty_neighbors)
-            grid[bear_x][bear_y] = -99  # Clear old position
-            grid[new_x][new_y] = -1     # Place bear at new position
+            # Find empty neighbors for movement
+            directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            empty_neighbors = []
+            
+            for dx, dy in directions:
+                nx, ny = bear_x + dx, bear_y + dy
+                if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE:
+                    if grid[nx][ny] == -99:  # Empty tile
+                        empty_neighbors.append((nx, ny))
+            
+            # Move bear to random empty neighbor if available
+            if empty_neighbors:
+                new_x, new_y = random.choice(empty_neighbors)
+                grid[bear_x][bear_y] = -99  # Clear old position
+                grid[new_x][new_y] = -1     # Place bear at new position
     
     return grid
 
