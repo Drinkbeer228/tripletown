@@ -107,15 +107,18 @@ user_problem_statement: "Create a casual puzzle game inspired by Triple Town wit
 backend:
   - task: "Game State Management API"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Implemented complete game engine with grid management, merge detection, bear movement, scoring system. Includes endpoints: POST /api/game/new, GET /api/game/{id}, POST /api/game/move, GET /api/game/{id}/high-scores"
+        - working: true
+          agent: "testing"
+          comment: "API endpoints for game creation and state management are working correctly. Successfully tested POST /api/game/new, GET /api/game/{id}, and POST /api/game/move. All endpoints return expected responses and handle invalid inputs appropriately."
 
   - task: "Merge-3 Detection Algorithm"
     implemented: true
