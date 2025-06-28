@@ -137,11 +137,11 @@ backend:
 
   - task: "Bear Movement and Trapping Logic"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
@@ -152,6 +152,9 @@ backend:
         - working: "NA"
           agent: "main"
           comment: "Fixed bear trapping using DFS algorithm to properly detect if bear has escape routes. Bears are trapped only when completely surrounded with no path to boundary"
+        - working: true
+          agent: "testing"
+          comment: "Bear trapping logic is now working correctly. The DFS algorithm properly detects when a bear is trapped (has no escape route to the boundary) and transforms it into a tombstone. Successfully tested by surrounding a bear and confirming it transforms into a tombstone."
 
   - task: "Progressive Difficulty System"
     implemented: true
