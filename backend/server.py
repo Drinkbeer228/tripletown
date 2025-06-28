@@ -233,12 +233,12 @@ def move_bears(grid: List[List[int]]) -> List[List[int]]:
     return grid
 
 def is_game_over(grid: List[List[int]]) -> bool:
-    """Check if game is over (no empty tiles)"""
+    """Check if game is over (no empty tiles remaining)"""
     for row in grid:
         for cell in row:
-            if cell == -99:
+            if cell == -99:  # Found empty tile
                 return False
-    return True
+    return True  # No empty tiles found, game is over
 
 # API Routes
 @api_router.post("/game/new", response_model=GameState)
