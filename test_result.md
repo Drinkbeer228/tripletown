@@ -263,4 +263,8 @@ agent_communication:
     - agent: "main"
       message: "Implemented complete Triple Town game engine with merge-3 mechanics, bear obstacles, progressive difficulty, and modern UI. Ready for comprehensive backend testing to verify game logic, API endpoints, and merge detection algorithms work correctly."
     - agent: "testing"
+      message: "Backend testing completed. Found 2 critical issues: bear trapping logic doesn't work consistently, and game over detection fails when board is full. Merge-3 logic and API endpoints work correctly."
+    - agent: "main"
+      message: "Fixed both critical issues: 1) Implemented proper DFS-based bear trapping algorithm that checks for escape routes to boundary, 2) Simplified game over detection to properly check all grid cells. Backend ready for retesting."
+    - agent: "testing"
       message: "Completed backend API testing. Most functionality is working correctly, including game creation, state management, basic merge detection, and progressive difficulty. However, there are two issues: 1) The bear trapping logic doesn't consistently transform bears into tombstones when surrounded, and 2) The game over detection doesn't always trigger when the board is full. The item progression chain test failures are likely due to the test approach rather than actual bugs, as the game's random item generation makes it difficult to test higher-tier merges directly."
