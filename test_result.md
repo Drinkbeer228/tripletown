@@ -164,6 +164,30 @@ backend:
         - working: true
           agent: "testing"
           comment: "Progressive difficulty system is working as expected. Bears do not spawn before move 10, and they start appearing after move 10. The test confirmed that bear spawn rate increases over time, with multiple bears appearing on the board after several moves."
+          
+  - task: "Game Over Detection"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "Game over detection is not working correctly. When filling the entire board with items, the game_over flag is not set to true as expected. This could be due to an issue in the is_game_over function or in how the board state is being evaluated."
+          
+  - task: "Scoring System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "Scoring system works correctly. Score increases appropriately when merges occur, with the score based on item type and merge size. For 3 grass merging into 1 bush, the score increased by 30 points as expected."
 
 frontend:
   - task: "6x6 Interactive Game Grid"
