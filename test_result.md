@@ -222,11 +222,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Game State Management API"
-    - "Merge-3 Detection Algorithm"
+    - "Bear Movement and Trapping Logic"
     - "6x6 Interactive Game Grid"
     - "Real-time Game State UI"
-  stuck_tasks: []
+  stuck_tasks:
+    - "Bear Movement and Trapping Logic"
   test_all: false
   test_priority: "high_first"
 
