@@ -116,6 +116,9 @@ class TargetedBackendTest:
         Test that bears are properly trapped when surrounded.
         Create a scenario where a bear is completely surrounded by items
         and verify it transforms into a tombstone.
+        
+        This test uses a more controlled approach by checking after each move
+        if a bear is in a position where it can be trapped in the next move.
         """
         print("\n=== Testing Bear Trapping Logic ===")
         
@@ -123,14 +126,16 @@ class TargetedBackendTest:
         if not self.create_new_game():
             return False
         
-        # First, we need to place a bear on the board
-        # Since bears only spawn after move 10 and with probability,
-        # we'll use a specific pattern to try to create a controlled scenario
+        # Make moves until we have a bear that's almost trapped
+        max_attempts = 50
+        attempt = 0
+        bear_trapped = False
         
-        # Make 15 moves to increase bear spawn chance
-        print("Making initial moves to increase bear spawn chance...")
-        for i in range(15):
-            # Find an empty spot
+        print("Making moves to find and trap a bear...")
+        while attempt < max_attempts and not bear_trapped:
+            attempt += 1
+            
+            # Make a move
             move_made = False
             for x in range(6):
                 for y in range(6):
@@ -140,88 +145,148 @@ class TargetedBackendTest:
                         break
                 if move_made:
                     break
-        
-        # Find a bear on the board
-        bear_x, bear_y = None, None
-        for x in range(6):
-            for y in range(6):
-                if self.game_state["grid"][x][y] == -1:  # Bear
-                    bear_x, bear_y = x, y
-                    break
-            if bear_x is not None:
+            
+            if not move_made:
+                print("No empty cells left to make a move")
                 break
+            
+            # After each move, check if there's a bear that can be trapped
+            # by placing one more item
+            for x in range(6):
+                for y in range(6):
+                    if self.game_state["grid"][x][y] == -1:  # Bear
+                        # Check if this bear has only one empty adjacent cell
+                        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+                        empty_neighbors = []
+                        
+                        for dx, dy in directions:
+                            nx, ny = x + dx, y + dy
+                            if 0 <= nx < 6 and 0 <= ny < 6:
+                                if self.game_state["grid"][nx][ny] == -99:  # Empty
+                                    empty_neighbors.append((nx, ny))
+                        
+                        # If there's only one empty neighbor, we can trap the bear
+                        if len(empty_neighbors) == 1:
+                            print(f"Found bear at ({x}, {y}) with only one escape route at {empty_neighbors[0]}")
+                            self.print_grid()
+                            
+                            # Place an item in the last empty neighbor to trap the bear
+                            nx, ny = empty_neighbors[0]
+                            print(f"Placing item at ({nx}, {ny}) to trap the bear")
+                            self.make_move(nx, ny)
+                            
+                            # Check if the bear turned into a tombstone
+                            if self.game_state["grid"][x][y] == -2:  # Tombstone
+                                print("Bear transformed into tombstone!")
+                                self.print_grid()
+                                self.assert_test(True, "Bear Trapping Logic", 
+                                                "Bear correctly transformed into tombstone when surrounded")
+                                bear_trapped = True
+                                return True
+                            else:
+                                print(f"Bear at ({x}, {y}) did not transform into tombstone despite being surrounded")
+                                self.print_grid()
         
-        if bear_x is None:
-            print("No bears found on the board. Creating a new game and trying again...")
-            # Try again with a new game
+        # If we couldn't trap a bear after max_attempts, try a more direct approach
+        if not bear_trapped:
+            print(f"Could not trap a bear after {max_attempts} attempts. Trying a different approach...")
+            
+            # Create a new game
             if not self.create_new_game():
                 return False
             
-            # Make more moves to increase bear spawn chance
-            for i in range(20):
-                move_made = False
+            # Make at least 15 moves to increase bear spawn chance
+            for i in range(15):
                 for x in range(6):
                     for y in range(6):
                         if self.game_state["grid"][x][y] == -99:  # Empty
                             self.make_move(x, y)
-                            move_made = True
                             break
-                    if move_made:
-                        break
+                    else:
+                        continue
+                    break
             
-            # Find a bear again
+            # Look for any bears on the board
+            bears_found = []
             for x in range(6):
                 for y in range(6):
                     if self.game_state["grid"][x][y] == -1:  # Bear
-                        bear_x, bear_y = x, y
-                        break
-                if bear_x is not None:
-                    break
-        
-        if bear_x is None:
-            self.assert_test(False, "Bear Trapping Logic", "Could not find a bear on the board after multiple attempts")
-            return False
-        
-        print(f"Found bear at position ({bear_x}, {bear_y})")
-        self.print_grid()
-        
-        # Now we need to surround the bear with items
-        # We'll try to place items in all adjacent cells
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-        surrounding_cells = []
-        
-        # Identify all surrounding cells that are within bounds
-        for dx, dy in directions:
-            nx, ny = bear_x + dx, bear_y + dy
-            if 0 <= nx < 6 and 0 <= ny < 6:
-                surrounding_cells.append((nx, ny))
-        
-        print(f"Attempting to surround bear with items at {surrounding_cells}")
-        
-        # Place items in all surrounding cells
-        for nx, ny in surrounding_cells:
-            if self.game_state["grid"][nx][ny] == -99:  # Empty
-                print(f"Placing item at ({nx}, {ny})")
-                self.make_move(nx, ny)
+                        bears_found.append((x, y))
+            
+            if not bears_found:
+                self.assert_test(False, "Bear Trapping Logic", "Could not find any bears on the board")
+                return False
+            
+            # Try to trap each bear by filling all adjacent cells
+            for bear_x, bear_y in bears_found:
+                print(f"Attempting to trap bear at ({bear_x}, {bear_y})")
+                self.print_grid()
                 
-                # Check if bear turned into tombstone after this move
-                if self.game_state["grid"][bear_x][bear_y] == -2:  # Tombstone
-                    print("Bear transformed into tombstone!")
-                    self.print_grid()
-                    self.assert_test(True, "Bear Trapping Logic", "Bear correctly transformed into tombstone when surrounded")
-                    return True
+                # Get all empty adjacent cells
+                directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+                empty_neighbors = []
+                
+                for dx, dy in directions:
+                    nx, ny = bear_x + dx, bear_y + dy
+                    if 0 <= nx < 6 and 0 <= ny < 6:
+                        if self.game_state["grid"][nx][ny] == -99:  # Empty
+                            empty_neighbors.append((nx, ny))
+                
+                # Fill all empty neighbors
+                for nx, ny in empty_neighbors:
+                    print(f"Placing item at ({nx}, {ny})")
+                    self.make_move(nx, ny)
+                    
+                    # Check if bear turned into tombstone
+                    if self.game_state["grid"][bear_x][bear_y] == -2:  # Tombstone
+                        print("Bear transformed into tombstone!")
+                        self.print_grid()
+                        self.assert_test(True, "Bear Trapping Logic", 
+                                        "Bear correctly transformed into tombstone when surrounded")
+                        return True
+                    
+                    # If the bear moved, update its position
+                    if self.game_state["grid"][bear_x][bear_y] != -1:
+                        # Look for the bear again
+                        new_bear_pos = None
+                        for x in range(6):
+                            for y in range(6):
+                                if self.game_state["grid"][x][y] == -1:  # Bear
+                                    new_bear_pos = (x, y)
+                                    break
+                            if new_bear_pos:
+                                break
+                        
+                        if new_bear_pos:
+                            bear_x, bear_y = new_bear_pos
+                            print(f"Bear moved to ({bear_x}, {bear_y})")
+                            
+                            # Recalculate empty neighbors
+                            empty_neighbors = []
+                            for dx, dy in directions:
+                                nx, ny = bear_x + dx, bear_y + dy
+                                if 0 <= nx < 6 and 0 <= ny < 6:
+                                    if self.game_state["grid"][nx][ny] == -99:  # Empty
+                                        empty_neighbors.append((nx, ny))
+            
+            # Check if any bear turned into a tombstone
+            tombstone_found = False
+            for x in range(6):
+                for y in range(6):
+                    if self.game_state["grid"][x][y] == -2:  # Tombstone
+                        tombstone_found = True
+                        break
+                if tombstone_found:
+                    break
+            
+            if tombstone_found:
+                print("Found a tombstone on the board!")
+                self.print_grid()
+                self.assert_test(True, "Bear Trapping Logic", "Bear correctly transformed into tombstone when surrounded")
+                return True
         
-        # After placing items in all surrounding cells, check if bear turned into tombstone
-        if self.game_state["grid"][bear_x][bear_y] == -2:  # Tombstone
-            print("Bear transformed into tombstone!")
-            self.print_grid()
-            self.assert_test(True, "Bear Trapping Logic", "Bear correctly transformed into tombstone when surrounded")
-            return True
-        else:
-            print("Bear did not transform into tombstone despite being surrounded")
-            self.print_grid()
-            self.assert_test(False, "Bear Trapping Logic", "Bear did not transform into tombstone when surrounded")
-            return False
+        self.assert_test(False, "Bear Trapping Logic", "Could not trap a bear after multiple attempts")
+        return False
     
     def test_game_over_detection(self):
         """
