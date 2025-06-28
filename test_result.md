@@ -255,13 +255,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bear Movement and Trapping Logic"
-    - "Game Over Detection"
     - "6x6 Interactive Game Grid"
     - "Real-time Game State UI"
   stuck_tasks:
-    - "Bear Movement and Trapping Logic"
-    - "Game Over Detection"
   test_all: false
   test_priority: "high_first"
 
