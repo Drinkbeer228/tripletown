@@ -173,15 +173,18 @@ backend:
           
   - task: "Game Over Detection"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "Game over detection is not working correctly. When filling the entire board with items, the game_over flag is not set to true as expected. This could be due to an issue in the is_game_over function or in how the board state is being evaluated."
+        - working: true
+          agent: "testing"
+          comment: "Game over detection is now working correctly. The is_game_over function properly checks for any empty tiles (-99) on the board and sets the game_over flag to true when the board is completely filled. Successfully tested by filling the entire 6x6 board and confirming the game_over flag was set to true."
           
   - task: "Scoring System"
     implemented: true
