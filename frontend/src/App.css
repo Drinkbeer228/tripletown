@@ -1,38 +1,181 @@
+/* Triple Town Game Styles */
+
 .App {
-    text-align: center;
+  min-height: 100vh;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Custom animations */
+@keyframes mergeGlow {
+  0% { 
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+    transform: scale(1.1);
+  }
+  100% { 
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+    transform: scale(1);
+  }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+@keyframes tilePlace {
+  0% { 
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+@keyframes gameOverPulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% { 
+    transform: scale(1.02);
+    opacity: 1;
+  }
 }
 
-.App-link {
-    color: #61dafb;
+/* Grid hover effects */
+.game-tile {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.game-tile:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.game-tile:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Merge animation class */
+.merge-animate {
+  animation: mergeGlow 0.6s ease-in-out;
+}
+
+/* Item placement animation */
+.place-animate {
+  animation: tilePlace 0.3s ease-out;
+}
+
+/* Game over animation */
+.game-over-overlay {
+  animation: gameOverPulse 2s ease-in-out infinite;
+}
+
+/* Custom scrollbar for mobile */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+  .mobile-text-lg {
+    font-size: 1rem;
+  }
+  
+  .mobile-text-xl {
+    font-size: 1.25rem;
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Glassmorphism effect enhancement */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Game completion celebration */
+.celebration-particle {
+  position: absolute;
+  pointer-events: none;
+  animation: celebrationFloat 2s ease-out forwards;
+}
+
+@keyframes celebrationFloat {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* Bear movement indicator */
+.bear-tile {
+  position: relative;
+}
+
+.bear-tile::after {
+  content: "👁️";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  animation: bearWatch 2s ease-in-out infinite;
+}
+
+@keyframes bearWatch {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Pixel-perfect grid alignment */
+.game-grid {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* High score highlight */
+.high-score-glow {
+  animation: highScoreGlow 3s ease-in-out infinite;
+}
+
+@keyframes highScoreGlow {
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+  }
 }
