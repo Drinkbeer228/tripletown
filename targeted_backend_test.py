@@ -292,6 +292,8 @@ class TargetedBackendTest:
         """
         Test the game over functionality by filling the entire 6x6 board
         and verifying that the game_over flag is set to true.
+        
+        This test uses a more systematic approach to ensure all cells are filled.
         """
         print("\n=== Testing Game Over Detection ===")
         
@@ -299,46 +301,80 @@ class TargetedBackendTest:
         if not self.create_new_game():
             return False
         
-        # Fill the entire board systematically
+        # Fill the board systematically, focusing on one cell at a time
         print("Filling the board to trigger game over...")
         
-        # First, count how many empty cells we have
-        empty_count = sum(row.count(-99) for row in self.game_state["grid"])
-        print(f"Starting with {empty_count} empty cells")
-        
-        # Fill all empty cells
+        # Keep track of how many moves we've made
         moves_made = 0
-        for x in range(6):
-            for y in range(6):
-                if self.game_state["grid"][x][y] == -99:  # Empty
-                    print(f"Placing item at ({x}, {y})")
+        max_moves = 100  # Safety limit
+        
+        while moves_made < max_moves:
+            # Count empty cells
+            empty_cells = []
+            for x in range(6):
+                for y in range(6):
+                    if self.game_state["grid"][x][y] == -99:  # Empty
+                        empty_cells.append((x, y))
+            
+            empty_count = len(empty_cells)
+            print(f"Current empty cells: {empty_count}")
+            
+            if empty_count == 0:
+                # Board is full, check game over
+                if self.game_state["game_over"]:
+                    print("Game over detected when board is full!")
+                    self.print_grid()
+                    self.assert_test(True, "Game Over Detection", 
+                                    "Game over flag correctly set to true when board is full")
+                    return True
+                else:
+                    print("Board is full but game_over flag is not set to true")
+                    self.print_grid()
+                    self.assert_test(False, "Game Over Detection", 
+                                    "Game over flag not set to true when board is full")
+                    return False
+            
+            # Make a move on the first empty cell
+            x, y = empty_cells[0]
+            print(f"Placing item at ({x}, {y})")
+            result = self.make_move(x, y)
+            if not result:
+                print(f"Failed to make move at ({x}, {y})")
+                # Try the next empty cell
+                if len(empty_cells) > 1:
+                    x, y = empty_cells[1]
+                    print(f"Trying next empty cell at ({x}, {y})")
                     result = self.make_move(x, y)
                     if not result:
-                        print(f"Failed to make move at ({x}, {y})")
-                        continue
-                    
-                    moves_made += 1
-                    
-                    # Check if game over after each move
-                    if self.game_state["game_over"]:
-                        print(f"Game over detected after {moves_made} moves!")
-                        self.print_grid()
-                        self.assert_test(True, "Game Over Detection", "Game over flag correctly set to true when board is full")
-                        return True
+                        print(f"Failed to make move at ({x}, {y}) as well")
+                        # If we can't make any moves, break
+                        break
+            
+            moves_made += 1
+            
+            # Check if game over after each move
+            if self.game_state["game_over"]:
+                print(f"Game over detected after {moves_made} moves!")
+                self.print_grid()
+                self.assert_test(True, "Game Over Detection", 
+                                "Game over flag correctly set to true when board is full")
+                return True
         
-        # After filling all cells, check if game over is detected
+        # If we reach here, we couldn't fill the board or game over wasn't detected
+        print(f"Made {moves_made} moves but couldn't fill the board or game over wasn't detected")
+        self.print_grid()
+        
+        # Count empty cells one more time
         empty_count = sum(row.count(-99) for row in self.game_state["grid"])
-        print(f"Ending with {empty_count} empty cells")
         
-        if self.game_state["game_over"]:
-            print("Game over detected after filling the board!")
-            self.assert_test(True, "Game Over Detection", "Game over flag correctly set to true when board is full")
-            return True
+        if empty_count == 0 and not self.game_state["game_over"]:
+            self.assert_test(False, "Game Over Detection", 
+                            "Board is full but game_over flag is not set to true")
         else:
-            print("Game over not detected despite filling the board")
-            self.print_grid()
-            self.assert_test(False, "Game Over Detection", "Game over flag not set to true when board is full")
-            return False
+            self.assert_test(False, "Game Over Detection", 
+                            f"Could not fill the board after {moves_made} moves. {empty_count} empty cells remain.")
+        
+        return False
     
     def run_targeted_tests(self):
         """Run the targeted tests for the fixed issues"""
