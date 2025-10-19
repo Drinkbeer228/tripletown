@@ -1,0 +1,44 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #e3d7b6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#game {
+  display: grid;
+  grid-template-columns: repeat(6, 64px);
+  grid-template-rows: repeat(6, 64px);
+  gap: 4px;
+  background: #a78b64;
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+
+.cell {
+  width: 64px;
+  height: 64px;
+  background: #d6c299;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 22px;
+  transition: transform 0.1s ease;
+}
+
+.cell:hover {
+  transform: scale(1.05);
+}
+
+.cell[data-type="1"] { background: #a1d490; }
+.cell[data-type="2"] { background: #76b86c; }
+.cell[data-type="3"] { background: #50944a; }
+.cell[data-type="4"] { background: #3e703d; }
+.cell[data-type="5"] { background: #2e4d2d; color: #fff; }
