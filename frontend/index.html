@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tripletown — Три в ряд (demo)</title>
+<style>
+  :root{
+    --size: 56px; /* размер клетки */
+    --gap: 6px;
+  }
+  body{
+    font-family: Inter, Roboto, Arial, sans-serif;
+    display:flex;
+    min-height:100vh;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(180deg,#0f172a,#071033);
+    margin:0;
+    color:#e6eef8;
+  }
+  .container{
+    width: calc(var(--size)*8 + var(--gap)*7 + 40px);
+    max-width:95vw;
+    background: rgba(255,255,255,0.03);
+    border-radius:12px;
+    padding:20px;
+    box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+  }
+  header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;}
+  h1{ font-size:18px; margin:0; letter-spacing:0.6px;}
+  .controls{ display:flex; gap:8px; align-items:center;}
+  button{
+    background:linear-gradient(180deg,#1e293b,#0b1220);
+    color:#dbeafe;
+    border:1px solid rgba(255,255,255,0.06);
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+  }
+  .hud{ display:flex; gap:12px; align-items:center; margin-bottom:10px;}
+  .score{ background: rgba(255,255,255,0.02); padding:8px 10px; border-radius:8px; min-width:120px; text-align:center;}
+  .board{
+    width: calc(var(--size)*8 + var(--gap)*7);
+    height: calc(var(--size)*8 + var(--gap)*7);
+    display:grid;
+    grid-template-columns: repeat(8, var(--size));
+    grid-template-rows: repeat(8, var(--size));
+    gap: var(--gap);
+    justify-content:center;
+    margin: 0 auto;
+    touch-action: none;
+    user-select:none;
+  }
+  .cell{
+    position:relative;
+    width:var(--size);
+    height:var(--size);
+    border-radius:10px;
+    overflow:visible;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .gem{
+    width:82%;
+    height:82%;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size:18px;
+    color:#07203a;
+    transform: translateZ(0);
+    transition: transform 180ms ease, top 220ms ease, left 220ms ease, opacity 180ms ease;
+    box-shadow: 0 6px 12px rgba(2,6,23,0.5);
+  }
+
+  /* different gem styles */
+  .g0{ background: linear-gradient(180deg,#ffd166,#ffb86b); }
+  .g1{ background: linear-gradient(180deg,#ef476f,#ff6b93); color:#fff;}
+  .g2{ background: linear-gradient(180deg,#06d6a0,#3fe1b8); color:#023927;}
+  .g3{ background: linear-gradient(180deg,#118ab2,#3fb2da); color:#052b3a;}
+  .g4{ background: linear-gradient(180deg,#8338ec,#b07bff); color:#fff;}
+  .g5{ background: linear-gradient(180deg,#ffb4a2,#ffd1c8); color:#401a11;}
+
+  .gem.match {
+    transform: scale(1.12);
+    transition: transform 140ms ease;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.6);
+  }
+
+  .gem.fadeout {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+
+  .overlay{
+    text-align:center;
+    margin-top:12px;
+    color:#bcd4ff;
+    font-size:13px;
+    opacity:0.9;
+  }
+
+  @media (max-width:640px){
+    :root{ --size:44px; --gap:5px; }
+    .container{ padding:12px; }
+    h1{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+  <div class="container" role="application" aria-label="Tripletown demo">
+    <header>
+      <h1>Tripletown — Три в ряд (demo)</h1>
+      <div class="controls">
+        <button id="newBtn">Новая игра</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="score">Счёт: <span id="score">0</span></div>
+      <div class="score">Ходы: <span id="moves">∞</span></div>
+    </div>
+
+    <div id="board" class="board" tabindex="0" aria-label="Игровое поле"></div>
+
+    <div class="overlay">Кликай по двум соседним плиткам или перетаскивай — совпадения автоматически удаляются.</div>
+  </div>
+
+<script>
+/*
+  Простой match-3 реализация:
+  - 8x8 поле
+  - 6 типов "камней"
+  - swap соседей (клик второй клетки или drag)
+  - обнаружение матчей, удаление, падение, refill
+  - подсчёт очков: 10 * длина каждого совпадения
+*/
+
+(() => {
+  const COLS = 8;
+  const ROWS = 8;
+  const TYPES = 6;
+  const boardEl = document.getElementById('board');
+  const scoreEl = document.getElementById('score');
+  const movesEl = document.getElementById('moves');
+  const newBtn = document.getElementById('newBtn');
+
+  let grid = []; // 2D array [r][c] values 0..TYPES-1
+  let score = 0;
+  let canInteract = true;
+
+  // helpers
+  const posToIndex = (r,c) => r * COLS + c;
+  const inBounds = (r,c) => r>=0 && c>=0 && r<ROWS && c<COLS;
+
+  function randType(){ return Math.floor(Math.random()*TYPES); }
+
+  function buildInitialGrid(){
+    grid = new Array(ROWS).fill(null).map(() => new Array(COLS).fill(0));
+    // fill avoiding immediate matches
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        let tries=0;
+        do {
+          grid[r][c] = randType();
+          tries++;
+          // avoid horizontal match
+        } while (
+          (c>=2 && grid[r][c] === grid[r][c-1] && grid[r][c] === grid[r][c-2])
+          || (r>=2 && grid[r][c] === grid[r-1][c] && grid[r][c] === grid[r-2][c])
+        );
+      }
+    }
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        const gem = document.createElement('div');
+        gem.className = 'gem g' + grid[r][c];
+        gem.draggable = true;
+        gem.dataset.r = r;
+        gem.dataset.c = c;
+        gem.dataset.type = grid[r][c];
+        gem.dataset.index = posToIndex(r,c);
+        gem.textContent = '';
+        // events
+        cell.addEventListener('click', onCellClick);
+        gem.addEventListener('dragstart', onDragStart);
+        gem.addEventListener('dragend', onDragEnd);
+        cell.appendChild(gem);
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  // input handling (click-swap and drag-swap)
+  let selected = null;
+  function onCellClick(e){
+    if(!canInteract) return;
+    const cell = e.currentTarget;
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    if(!selected){
+      selected = {r,c};
+      highlight(r,c,true);
+      return;
+    }
+    if(selected.r === r && selected.c === c){
+      highlight(selected.r,selected.c,false);
+      selected = null;
+      return;
+    }
+    if(areNeighbors(selected, {r,c})){
+      doSwap(selected, {r,c});
+    } else {
+      highlight(selected.r,selected.c,false);
+      selected = {r,c};
+      highlight(r,c,true);
+    }
+  }
+
+  function highlight(r,c, on){
+    const cell = boardEl.children[posToIndex(r,c)];
+    if(!cell) return;
+    const gem = cell.firstElementChild;
+    if(on) gem.style.transform = 'scale(1.08)';
+    else gem.style.transform = '';
+  }
+
+  function areNeighbors(a,b){
+    const dr = Math.abs(a.r - b.r);
+    const dc = Math.abs(a.c - b.c);
+    return (dr + dc) === 1;
+  }
+
+  // drag & drop
+  let dragStart = null;
+  function onDragStart(e){
+    if(!canInteract) { e.preventDefault(); return; }
+    const r = +e.target.dataset.r, c = +e.target.dataset.c;
+    dragStart = {r,c};
+    try { e.dataTransfer.setData('text/plain',''); } catch(_) {}
+  }
+  function onDragEnd(e){
+    if(!dragStart) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    // find closest gem cell element
+    const cell = el && el.closest && el.closest('.cell');
+    if(cell){
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      if(areNeighbors(dragStart,{r,c})){
+        doSwap(dragStart, {r,c});
+      }
+    }
+    dragStart = null;
+  }
+
+  // swap and game flow
+  async function doSwap(a,b){
+    if(!inBounds(a.r,a.c) || !inBounds(b.r,b.c)) return;
+    canInteract = false;
+    highlight(a.r,a.c,false);
+    highlight(b.r,b.c,false);
+
+    swapGrid(a,b);
+    await animateSwap(a,b);
+    const matches = findAllMatches();
+    if(matches.length === 0){
+      // invalid move: swap back
+      swapGrid(a,b);
+      await animateSwap(a,b);
+      canInteract = true;
+      return;
+    }
+    // process matches cascade
+    await processMatches();
+    canInteract = true;
+  }
+
+  function swapGrid(a,b){
+    const tmp = grid[a.r][a.c];
+    grid[a.r][a.c] = grid[b.r][b.c];
+    grid[b.r][b.c] = tmp;
+  }
+
+  // simple animation: move DOM nodes positions by swapping classes / re-rendering
+  function animateSwap(a,b){
+    return new Promise(resolve => {
+      // quick visual: swap types and re-render gem classes with small transform
+      const idxA = posToIndex(a.r,a.c);
+      const idxB = posToIndex(b.r,b.c);
+      const gemA = boardEl.children[idxA].firstElementChild;
+      const gemB = boardEl.children[idxB].firstElementChild;
+      // apply tiny transform to show movement
+      gemA.style.transition = 'transform 180ms ease';
+      gemB.style.transition = 'transform 180ms ease';
+      gemA.style.transform = 'translate(' + ((b.c - a.c)*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--size')) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'))) + 'px, ' + ((b.r - a.r)*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--size')) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'))) ) + 'px)';
+      gemB.style.transform = 'translate(' + ((a.c - b.c)*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--size')) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'))) ) + 'px, ' + ((a.r - b.r)*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--size')) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'))) ) + 'px)';
+
+      setTimeout(() => {
+        // after movement, update DOM to reflect new types
+        renderBoard(); // simple approach: re-render whole board
+        setTimeout(resolve, 120);
+      }, 180);
+    });
+  }
+
+  // find matches: returns array of match objects {cells:[{r,c}], type}
+  function findAllMatches(){
+    const matches = [];
+    const seen = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+    // horizontal
+    for(let r=0;r<ROWS;r++){
+      let runType = null, runLen = 0, runStart = 0;
+      for(let c=0;c<=COLS;c++){
+        const t = (c<COLS) ? grid[r][c] : null;
+        if(c<COLS && t === runType){
+          runLen++;
+        } else {
+          if(runLen >= 3){
+            const cells = [];
+            for(let k=runStart;k<runStart+runLen;k++){
+              cells.push({r,c:k});
+              seen[r][k] = true;
+            }
+            matches.push({cells, type: runType});
+          }
+          runType = t;
+          runLen = (c<COLS)?1:0;
+          runStart = c;
+        }
+      }
+    }
+    // vertical
+    for(let c=0;c<COLS;c++){
+      let runType = null, runLen = 0, runStart = 0;
+      for(let r=0;r<=ROWS;r++){
+        const t = (r<ROWS) ? grid[r][c] : null;
+        if(r<ROWS && t === runType){
+          runLen++;
+        } else {
+          if(runLen >= 3){
+            const cells = [];
+            for(let k=runStart;k<runStart+runLen;k++){
+              // avoid pushing duplicates if already included horizontally
+              if(!seen[k][c]){
+                cells.push({r:k,c});
+              }
+            }
+            // Note: if all were seen horizontally, cells may be empty — we still want to record matches to remove full run
+            // We'll collect full run unconditionally:
+            const fullCells = [];
+            for(let k=runStart;k<runStart+runLen;k++){
+              fullCells.push({r:k,c});
+            }
+            matches.push({cells: fullCells, type: runType});
+          }
+          runType = t;
+          runLen = (r<ROWS)?1:0;
+          runStart = r;
+        }
+      }
+    }
+    return matches;
+  }
+
+  async function processMatches(){
+    let totalGain = 0;
+    while(true){
+      const matches = findAllMatches();
+      if(matches.length === 0) break;
+      // mark matched cells and animate fade
+      const cellsToRemove = new Set();
+      let gain = 0;
+      matches.forEach(m => {
+        gain += m.cells.length * 10;
+        m.cells.forEach(({r,c}) => cellsToRemove.add(posToIndex(r,c)));
+      });
+      totalGain += gain;
+      await animateRemoval([...cellsToRemove]);
+      removeCells([...cellsToRemove]);
+      await applyGravity();
+      await refill();
+    }
+    score += totalGain;
+    updateHUD();
+  }
+
+  function animateRemoval(indexes){
+    return new Promise(resolve => {
+      // add fadeout class to matched gems DOM
+      indexes.forEach(idx => {
+        const cell = boardEl.children[idx];
+        if(!cell) return;
+        const gem = cell.firstElementChild;
+        if(!gem) return;
+        gem.classList.add('match');
+      });
+      // short pulse then fade
+      setTimeout(() => {
+        indexes.forEach(idx=>{
+          const cell = boardEl.children[idx];
+          if(!cell) return;
+          const gem = cell.firstElementChild;
+          if(!gem) return;
+          gem.classList.add('fadeout');
+        });
+      }, 140);
+      setTimeout(() => {
+        // re-render after animation
+        renderBoard();
+        setTimeout(resolve, 80);
+      }, 340);
+    });
+  }
+
+  function removeCells(indexes){
+    indexes.forEach(idx => {
+      const r = Math.floor(idx / COLS);
+      const c = idx % COLS;
+      grid[r][c] = null;
+    });
+  }
+
+  function applyGravity(){
+    return new Promise(resolve => {
+      // for each column, compact and shift down
+      for(let c=0;c<COLS;c++){
+        let ptr = ROWS - 1;
+        for(let r=ROWS-1;r>=0;r--){
+          if(grid[r][c] !== null && grid[r][c] !== undefined){
+            grid[ptr][c] = grid[r][c];
+            if(ptr !== r) grid[r][c] = null;
+            ptr--;
+          }
+        }
+        // set remaining top to null
+        for(let r=ptr;r>=0;r--) grid[r][c] = null;
+      }
+      // animate re-render
+      renderBoard();
+      setTimeout(resolve, 130);
+    });
+  }
+
+  function refill(){
+    return new Promise(resolve => {
+      for(let c=0;c<COLS;c++){
+        for(let r=0;r<ROWS;r++){
+          if(grid[r][c] === null || grid[r][c] === undefined){
+            grid[r][c] = randType();
+          }
+        }
+      }
+      // new gems appear with small delay
+      renderBoard();
+      setTimeout(resolve, 140);
+    });
+  }
+
+  function updateHUD(){
+    scoreEl.textContent = score;
+  }
+
+  function startNewGame(){
+    score = 0;
+    updateHUD();
+    buildInitialGrid();
+    renderBoard();
+    canInteract = true;
+    selected = null;
+  }
+
+  // initialize
+  newBtn.addEventListener('click', startNewGame);
+  startNewGame();
+
+  // keyboard support: arrow to move selection
+  boardEl.addEventListener('keydown', (e)=>{
+    if(!selected) selected = {r:0,c:0};
+    const s = selected;
+    if(e.key === 'ArrowLeft') s.c = Math.max(0, s.c-1);
+    if(e.key === 'ArrowRight') s.c = Math.min(COLS-1, s.c+1);
+    if(e.key === 'ArrowUp') s.r = Math.max(0, s.r-1);
+    if(e.key === 'ArrowDown') s.r = Math.min(ROWS-1, s.r+1);
+    if(e.key === ' ' || e.key === 'Enter'){
+      // try to swap with previous? This is minimal support.
+    }
+    // re-render highlight by toggling transform quickly
+    renderBoard();
+    highlight(s.r,s.c,true);
+  });
+
+})();
+</script>
+</body>
+</html>
